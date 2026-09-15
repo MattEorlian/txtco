@@ -5,11 +5,14 @@
 
 #include "command.h"
 #include "command_txtco.h"
+#include "command_help.h"
 
 int main(int argc, char* argv[]) {
     cmd_dict dict;
     command_txtco txtco;
+    command_help help(dict);
     dict.add(txtco);
+    dict.add(help);
 
     if (argc < 2) {
         std::cerr << "Usage: txtco <command> [args...]\n";

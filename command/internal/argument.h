@@ -9,6 +9,10 @@
 class argument_base//为类型擦除服务的argument_base。
 {
 public:
+    const std::string doc;//文档字符串
+public:
+    argument_base(const char* Doc);
+public:
     virtual int convert(int argc,char* argv[]) = 0;
     virtual void restore_default() = 0;
 };

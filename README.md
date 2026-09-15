@@ -11,7 +11,8 @@ A lightweight C++ command-line text collector. It scans a directory for text fil
 - Exclude specific directories or files (multi-value)
 - Output to a file or the Windows clipboard
 - UTF-8 output with BOM for Windows Notepad compatibility
-- Extensible command-line framework with type-erased argument system
+- Built-in `help` command for browsing commands and their arguments
+- Extensible command-line framework with a type-erased argument system
 
 ---
 
@@ -41,15 +42,16 @@ txtco <command> [arguments...]
 | Command | Description |
 | :--- | :--- |
 | `txtco` | Collect text files from a directory |
+| `help` | Show help for all commands or a specific one |
 
-### Arguments
+### `txtco` Arguments
 
 | Flag | Value | Description | Default |
 | :--- | :--- | :--- | :--- |
 | `-dir` | path | Root directory to scan | `.` |
 | `-recursive` | `true` / `false` | Recurse into subdirectories | `false` |
-| `-exclude_dir` | path(s) | Exclude directories (multi-value) | — |
-| `-exclude_file` | path(s) | Exclude files (multi-value) | — |
+| `-exclude_dir` | path(s) | Directories to skip (multi-value) | — |
+| `-exclude_file` | path(s) | Files to skip (multi-value) | — |
 | `-format` | extension(s) | File extensions to collect (required, multi-value) | — |
 | `-o` | path | Output directory | `.` |
 | `-o_code` | `UTF-8` / `GBK` / `UTF-16` | Output encoding | `UTF-8` |
@@ -57,14 +59,26 @@ txtco <command> [arguments...]
 
 **Note**: Relative paths passed to `-exclude_dir` and `-exclude_file` are resolved against `-dir`. Absolute paths are used as-is.
 
+### `help` Arguments
+
+| Flag | Value | Description | Default |
+| :--- | :--- | :--- | :--- |
+| `-which` | command name or `all` | Command to show help for; `all` shows everything | `all` |
+
 ### Examples
 
 ```bash
+# Show every command and its arguments
+txtco help
+
+# Show help for the txtco command only
+txtco help -which txtco
+
 # Collect all .cpp and .h files from the parent directory into the clipboard
 txtco txtco -dir .. -format .cpp .h -clipboard true
 
-# Recursively collect .txt files from D:\docs, excluding the archive folder
-txtco txtco -dir D:\docs -recursive true -format .txt -exclude_dir archive
+# Recursively collect .txt files from D:\docs, excluding archive and build
+txtco txtco -dir D:\docs -recursive true -format .txt -exclude_dir archive build
 
 # Write the result to D:\out with UTF-8 encoding
 txtco txtco -dir . -format .md -o D:\out -o_code UTF-8
@@ -117,7 +131,7 @@ The command-line module is built on three layers:
 
 | Type | Role |
 | :--- | :--- |
-| `argument_base` | Type-erased interface for all argument types |
+| `argument_base` | Type-erased interface for all argument types; also holds the `doc` string |
 | `argument<T>` | Templated argument holding a value of type `T` |
 | `arg_dict` | `ref_dict<std::string, argument_base>` — maps flag → argument |
 | `cmd_dict` | `ref_dict<std::string, command>` — maps command name → command |
@@ -170,7 +184,7 @@ public:
 
 command_mycmd::command_mycmd()
     : command("mycmd", "My new command"),
-      count(1, conv::to_int)
+      count(1, conv::to_int, "Number of times to run (default: 1)")
 {
     dict.pair("-n", count);
 }
@@ -186,8 +200,10 @@ void command_mycmd::operator()() {
 ```cpp
 cmd_dict dict;
 command_txtco txtco;
+command_help help(dict);
 command_mycmd mycmd;
 dict.add(txtco);
+dict.add(help);
 dict.add(mycmd);
 ```
 
@@ -209,10 +225,10 @@ inline int to_int(int& dst, int argc, char* argv[]) {
 argument<int> count;
 ```
 
-3. Bind it in the constructor:
+3. Bind it in the constructor, passing a doc string:
 
 ```cpp
-count(1, conv::to_int)
+count(1, conv::to_int, "Number of times to run (default: 1)")
 ```
 
 4. Register it:
@@ -235,6 +251,7 @@ dict.pair("-n", count);
 ## Design Notes
 
 - **Type erasure**: `argument_base` allows differently-typed arguments to be stored in a single `arg_dict`. No templates leak into `command`.
+- **Self-documenting arguments**: `doc` lives on `argument_base`, so the `help` command can walk any `arg_dict` and print each argument's description without maintaining a separate help text.
 - **Non-owning dictionary**: `ref_dict` stores raw pointers. The commands own their arguments; the dict merely references them. This avoids heap allocation entirely.
 - **Fail-fast parsing**: If any argument converter throws, the entire parse is aborted and defaults are restored. This keeps the command object in a consistent state.
 - **UTF-8 everywhere internally**: Source file bytes are read as-is and written with a BOM for UTF-8 output. Future support for GBK/UTF-16 conversion is planned.
@@ -247,6 +264,7 @@ dict.pair("-n", count);
 - `-o_code` currently only affects the BOM; actual transcoding to GBK/UTF-16 is not yet implemented.
 - Input file encoding is not detected — files are read byte-for-byte.
 - `build/` and `.git/` are not excluded by default; users must pass `-exclude_dir` explicitly.
+- Misspelled flags do not yet produce "did you mean…?" suggestions.
 
 ---
 
@@ -254,12 +272,14 @@ dict.pair("-n", count);
 
 MIT License. See `LICENSE` for details.
 
+---
+
 ## AI Assistance
 
 This project is the result of my own design and implementation. AI was used as a coding assistant, not as the primary author. The breakdown is as follows:
 
 **Written by me (the author):**
-- All architectural decisions: the `argument_base` / `argument<T>` type-erasure design, the `ref_dict` container, the `command` / `cmd_dict` framework.
+- All architectural decisions: the `argument_base` / `argument<T>` type-erasure design, the `ref_dict` container, the `command` / `cmd_dict` framework, and the `help` command with its `-which` argument.
 - All header files and the core framework logic in `command/`.
 - `main.cpp`, `CMakeLists.txt`, and the overall project structure.
 - Debugging, integration, and iteration on the tool until it worked end-to-end.

@@ -23,14 +23,22 @@ static std::string to_lower(std::string s) {
 
 command_txtco::command_txtco()
     : command("txtco", "Collect text files from a directory"),
-      dir(".",              conv::to_existing_dir),
-      recursive(false,      conv::to_bool),
-      exclude_dirs({},      conv::append_string),
-      exclude_files({},     conv::append_string),
-      formats({},           conv::append_string),
-      output_path(".",      conv::to_string),
-      output_encoding("UTF-8", conv::to_encoding),
-      pasteboard(false,     conv::to_bool)
+      dir(".", conv::to_existing_dir,
+          "Root directory to scan (default: current directory)"),
+      recursive(false, conv::to_bool,
+          "Recurse into subdirectories, true/false (default: false)"),
+      exclude_dirs({}, conv::append_string,
+          "Directories to skip, relative to -dir (multi-value, optional)"),
+      exclude_files({}, conv::append_string,
+          "Files to skip, relative to -dir (multi-value, optional)"),
+      formats({}, conv::append_string,
+          "File extensions to collect, e.g. .cpp .h (required, multi-value)"),
+      output_path(".", conv::to_string,
+          "Output directory (default: current directory)"),
+      output_encoding("UTF-8", conv::to_encoding,
+          "Output encoding: UTF-8 / GBK / UTF-16 (default: UTF-8)"),
+      pasteboard(false, conv::to_bool,
+          "Copy result to clipboard instead of writing a file, true/false (default: false)")
 {
     dict.pair("-dir",          dir);
     dict.pair("-recursive",    recursive);
@@ -39,7 +47,7 @@ command_txtco::command_txtco()
     dict.pair("-format",       formats);
     dict.pair("-o",            output_path);
     dict.pair("-o_code",       output_encoding);
-    dict.pair("-clipboard",   pasteboard);
+    dict.pair("-clipboard",    pasteboard);
 }
 
 void command_txtco::operator()() {

@@ -1,7 +1,5 @@
 # txtco
 
-（机翻自英文README）
-
 一个轻量级的 C++ 命令行文本收集器。它扫描指定目录下符合扩展名的文本文件，将它们合并为一个输出文件，或直接复制到剪贴板。
 
 ---
@@ -13,6 +11,7 @@
 - 排除指定目录或文件（支持多值）
 - 输出到文件或 Windows 剪贴板
 - UTF-8 输出并带 BOM，兼容 Windows 记事本
+- 内置 `help` 命令，可查看所有命令或单个命令的参数说明
 - 可扩展的命令行框架，内置类型擦除的参数系统
 
 ---
@@ -43,8 +42,9 @@ txtco <命令> [参数...]
 | 命令 | 说明 |
 | :--- | :--- |
 | `txtco` | 从目录中收集文本文件 |
+| `help` | 显示所有命令或某个命令的帮助信息 |
 
-### 参数
+### `txtco` 命令的参数
 
 | 参数 | 取值 | 说明 | 默认值 |
 | :--- | :--- | :--- | :--- |
@@ -59,14 +59,26 @@ txtco <命令> [参数...]
 
 **注意**：`-exclude_dir` 和 `-exclude_file` 中的相对路径基于 `-dir` 解析；绝对路径直接使用。
 
+### `help` 命令的参数
+
+| 参数 | 取值 | 说明 | 默认值 |
+| :--- | :--- | :--- | :--- |
+| `-which` | 命令名或 `all` | 要显示帮助的命令名，`all` 表示显示全部 | `all` |
+
 ### 示例
 
 ```bash
+# 显示所有命令和它们的参数
+txtco help
+
+# 只显示 txtco 命令的帮助
+txtco help -which txtco
+
 # 收集上级目录下所有 .cpp 和 .h 文件到剪贴板
 txtco txtco -dir .. -format .cpp .h -clipboard true
 
-# 递归收集 D:\docs 下的 .txt 文件，排除 archive 文件夹
-txtco txtco -dir D:\docs -recursive true -format .txt -exclude_dir archive
+# 递归收集 D:\docs 下的 .txt 文件，排除 archive 和 build 目录
+txtco txtco -dir D:\docs -recursive true -format .txt -exclude_dir archive build
 
 # 使用 UTF-8 编码将结果写入 D:\out
 txtco txtco -dir . -format .md -o D:\out -o_code UTF-8
@@ -119,7 +131,7 @@ txtco txtco -dir . -format .md -o D:\out -o_code UTF-8
 
 | 类型 | 作用 |
 | :--- | :--- |
-| `argument_base` | 为所有参数类型提供类型擦除接口 |
+| `argument_base` | 为所有参数类型提供类型擦除接口，持有 `doc` 字符串 |
 | `argument<T>` | 持有类型 T 值的模板参数 |
 | `arg_dict` | `ref_dict<std::string, argument_base>` —— 将参数键映射到参数对象 |
 | `cmd_dict` | `ref_dict<std::string, command>` —— 将命令名映射到命令对象 |
@@ -171,8 +183,8 @@ public:
 #include "command_mycmd.h"
 
 command_mycmd::command_mycmd()
-    : command("mycmd", "我的新命令"),
-      count(1, conv::to_int)
+    : command("mycmd", "My new command"),
+      count(1, conv::to_int, "Number of times to run (default: 1)")
 {
     dict.pair("-n", count);
 }
@@ -188,8 +200,10 @@ void command_mycmd::operator()() {
 ```cpp
 cmd_dict dict;
 command_txtco txtco;
+command_help help(dict);
 command_mycmd mycmd;
 dict.add(txtco);
+dict.add(help);
 dict.add(mycmd);
 ```
 
@@ -211,10 +225,10 @@ inline int to_int(int& dst, int argc, char* argv[]) {
 argument<int> count;
 ```
 
-3. 在构造函数中绑定：
+3. 在构造函数中绑定，并传入 doc 字符串：
 
 ```cpp
-count(1, conv::to_int)
+count(1, conv::to_int, "Number of times to run (default: 1)")
 ```
 
 4. 注册：
@@ -237,6 +251,7 @@ dict.pair("-n", count);
 ## 设计说明
 
 - **类型擦除**：`argument_base` 让不同类型的参数能存储在同一个 `arg_dict` 中，模板不会泄漏到 `command` 里。
+- **参数自带文档**：`doc` 提升到 `argument_base`，使 `help` 命令能在遍历 `arg_dict` 时统一访问每个参数的说明，无需手写重复的帮助文本。
 - **非拥有字典**：`ref_dict` 存储裸指针。命令拥有自己的参数，字典仅引用它们。这完全避免了堆分配。
 - **快速失败解析**：任何参数转换器抛异常，整个解析都会中止并恢复默认值，保持命令对象状态一致。
 - **内部统一使用 UTF-8**：源文件按字节读取，UTF-8 输出时带 BOM。未来计划支持 GBK/UTF-16 转码。
@@ -249,6 +264,7 @@ dict.pair("-n", count);
 - `-o_code` 目前只影响 BOM；尚未实现真正的 GBK/UTF-16 转码。
 - 不检测输入文件编码——按字节读取。
 - 默认不排除 `build/` 和 `.git/`；用户需显式传入 `-exclude_dir`。
+- 参数名拼错时不会给出“你是不是想写……”的建议。
 
 ---
 
@@ -263,7 +279,7 @@ MIT License，详见 `LICENSE`。
 本项目由我本人设计与实现。AI 在其中作为编码助手，而非主要作者。具体分工如下：
 
 **由我（作者）编写：**
-- 所有架构决策：`argument_base` / `argument<T>` 的类型擦除设计、`ref_dict` 容器、`command` / `cmd_dict` 框架。
+- 所有架构决策：`argument_base` / `argument<T>` 的类型擦除设计、`ref_dict` 容器、`command` / `cmd_dict` 框架、`help` 命令与 `-which` 参数。
 - `command/` 下的所有头文件及核心框架逻辑。
 - `main.cpp`、`CMakeLists.txt` 及整体项目结构。
 - 所有调试、集成与迭代，直到工具端到端跑通。

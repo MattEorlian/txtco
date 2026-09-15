@@ -18,8 +18,23 @@ public:
 private:
     converter_callable converter;//可执行的转换器，签名为int(*)(T&,int argc,char* argv[])。返回整数值为读取了多少个参数
 public://构造函数
+    
     argument(const T& default_arg,converter_callable Converter)
-        :arg(default_arg),defaultArg(default_arg),converter(Converter)
+        :
+        argument_base(""),
+        arg(default_arg),
+        defaultArg(default_arg),
+        converter(Converter)
+    {
+        
+    }
+
+    argument(const T& default_arg,converter_callable Converter,const char* Doc)
+        :
+        argument_base(Doc),
+        arg(default_arg),
+        defaultArg(default_arg),
+        converter(Converter)
     {
         
     }

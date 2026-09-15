@@ -10,6 +10,10 @@ template<typename T_Key,typename T_Val> class ref_dict//可以存储引用（实
 protected:
     std::unordered_map<T_Key,T_Val*> dict;
 public:
+    ref_dict(){};
+    ref_dict(const ref_dict& other) = delete;
+    ref_dict& operator=(const ref_dict& other) = delete;
+public:
     void pair(const T_Key& key,T_Val& val)
     {
         dict[key] = &val;
@@ -20,9 +24,36 @@ public:
     }
     T_Val& operator[](const T_Key& key)
     {
-        T_Val* ptr = dict[key];
-        if(ptr == nullptr) throw std::invalid_argument("Cannot find argument. Expect a valid key string.");
-        return *ptr;
+        auto it = dict.find(key);
+        if (it == dict.end() || it->second == nullptr)
+            throw std::invalid_argument("Cannot find key.");
+        return *(it->second);
+    }
+    const T_Val& operator[](const T_Key& key) const
+    {
+        auto it = dict.find(key);
+        if (it == dict.end() || it->second == nullptr)
+            throw std::invalid_argument("Cannot find key.");
+        return *(it->second);
+    }
+    auto begin()
+    {
+        return dict.begin();
+    }
+
+    auto end()
+    {
+        return dict.end();
+    }
+
+    auto begin() const
+    {
+        return dict.begin();
+    }
+
+    auto end() const
+    {
+        return dict.end();
     }
 };
 }
