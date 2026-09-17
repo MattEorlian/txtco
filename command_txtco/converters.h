@@ -54,4 +54,21 @@ inline int to_existing_dir(std::string& dst, int argc, char* argv[]) {
     return 1;
 }
 
+// 贪婪消费，且逐个校验是否为存在的目录
+inline int append_existing_dir(std::vector<std::string>& dst, int argc, char* argv[]) {
+    namespace fs = std::filesystem;
+    int consumed = 0;
+    while (consumed < argc) {
+        std::string s = argv[consumed];
+        if (!s.empty() && s[0] == '-') break;
+        if (!fs::exists(s) || !fs::is_directory(s))
+            throw std::invalid_argument(std::string("not a directory: ") + s);
+        dst.push_back(s);
+        ++consumed;
+    }
+    if (consumed == 0)
+        throw std::invalid_argument("expected at least one directory");
+    return consumed;
+}
+
 } // namespace conv

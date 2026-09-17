@@ -22,15 +22,15 @@ static std::string to_lower(std::string s) {
 }
 
 command_txtco::command_txtco()
-    : command("txtco", "Collect text files from a directory"),
-      dir(".", conv::to_existing_dir,
-          "Root directory to scan (default: current directory)"),
+    : command("txtco", "Collect text files from one or more directories"),
+      dir({"."}, conv::append_existing_dir,
+          "Root directories to scan (multi-value, default: current directory)"),
       recursive(false, conv::to_bool,
           "Recurse into subdirectories, true/false (default: false)"),
       exclude_dirs({}, conv::append_string,
-          "Directories to skip, relative to -dir (multi-value, optional)"),
+          "Directories to skip, relative to the first -dir (multi-value, optional)"),
       exclude_files({}, conv::append_string,
-          "Files to skip, relative to -dir (multi-value, optional)"),
+          "Files to skip, relative to the first -dir (multi-value, optional)"),
       formats({}, conv::append_string,
           "File extensions to collect, e.g. .cpp .h (required, multi-value)"),
       output_path(".", conv::to_string,
@@ -55,12 +55,17 @@ void command_txtco::operator()() {
     if (formats.arg.empty())
         throw std::runtime_error("-format is required (at least one)");
 
+    if (dir.arg.empty())
+        throw std::runtime_error("-dir must have at least one value");
+
     // ---------- 2. 构建查找表 ----------
-    // 相对路径基于 -dir 解析；绝对路径直接用
+    // 相对路径以第一个 -dir 为基准
+    const fs::path base_dir = dir.arg.front();
+
     auto resolve_path = [&](const std::string& p) -> std::string {
         fs::path path(p);
         if (path.is_relative())
-            path = fs::path(dir.arg) / path;
+            path = base_dir / path;
         return fs::absolute(path).lexically_normal().string();
     };
 
@@ -75,12 +80,13 @@ void command_txtco::operator()() {
     // ---------- 3. 遍历并收集 ----------
     std::string result;
     int file_count = 0;
+    std::unordered_set<std::string> visited_files;   // 文件级去重
 
     auto process_file = [&](const fs::path& p) {
         std::string abs = fs::absolute(p).lexically_normal().string();
+        if (visited_files.count(abs)) return;        // 已收集过
         if (ex_files.count(abs)) return;
 
-        // 扩展名忽略大小写匹配
         std::string ext = to_lower(p.extension().string());
         if (!fmts.count(ext)) return;
 
@@ -96,6 +102,8 @@ void command_txtco::operator()() {
         result += content;
         if (!content.empty() && content.back() != '\n') result += '\n';
         result += "\n";
+
+        visited_files.insert(abs);
         ++file_count;
     };
 
@@ -114,7 +122,9 @@ void command_txtco::operator()() {
         }
     };
 
-    walk(dir.arg);
+    for (const auto& d : dir.arg) {
+        walk(d);
+    }
 
     std::cout << "Collected " << file_count << " files, "
               << result.size() << " bytes.\n";
@@ -128,7 +138,6 @@ void command_txtco::operator()() {
         return;
     }
 
-    // 生成输出文件名：txtco_output_YYYYMMDD_HHMMSS.txt
     auto now = std::chrono::system_clock::now();
     std::time_t t = std::chrono::system_clock::to_time_t(now);
     std::tm tm = *std::localtime(&t);
@@ -140,7 +149,6 @@ void command_txtco::operator()() {
     std::ofstream ofs(out_path, std::ios::binary);
     if (!ofs) throw std::runtime_error("Cannot create: " + out_path.string());
 
-    // UTF-8 带 BOM，方便 Windows 记事本识别
     if (output_encoding.arg == "UTF-8")
         ofs.write("\xEF\xBB\xBF", 3);
 

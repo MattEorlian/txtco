@@ -8,7 +8,7 @@
 
 class command_txtco : public command {
 public:
-    argument<std::string>              dir;            // -dir
+    argument<std::vector<std::string>> dir;            // -dir
     argument<bool>                     recursive;      // -recursive
     argument<std::vector<std::string>> exclude_dirs;   // -exclude_dir
     argument<std::vector<std::string>> exclude_files;  // -exclude_file
