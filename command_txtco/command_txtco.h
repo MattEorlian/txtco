@@ -16,7 +16,9 @@ public:
     argument<std::string>              output_path;    // -o
     argument<std::string>              output_encoding;// -o_code
     argument<bool>                     pasteboard;     // 实际键为-clipboard
+    argument<std::vector<std::string>> keyword;        // -keyword
 
+public:
     command_txtco();
     void operator()() override;
 };

@@ -38,7 +38,9 @@ command_txtco::command_txtco()
       output_encoding("UTF-8", conv::to_encoding,
           "Output encoding: UTF-8 / GBK / UTF-16 (default: UTF-8)"),
       pasteboard(false, conv::to_bool,
-          "Copy result to clipboard instead of writing a file, true/false (default: false)")
+          "Copy result to clipboard instead of writing a file, true/false (default: false)"),
+      keyword({}, conv::append_string,
+          "Only collect files whose name (with extension) contains any of these substrings (multi-value, optional)")
 {
     dict.pair("-dir",          dir);
     dict.pair("-recursive",    recursive);
@@ -48,6 +50,7 @@ command_txtco::command_txtco()
     dict.pair("-o",            output_path);
     dict.pair("-o_code",       output_encoding);
     dict.pair("-clipboard",    pasteboard);
+    dict.pair("-keyword",      keyword);
 }
 
 void command_txtco::operator()() {
@@ -87,8 +90,22 @@ void command_txtco::operator()() {
         if (visited_files.count(abs)) return;        // 已收集过
         if (ex_files.count(abs)) return;
 
+        // 扩展名忽略大小写匹配
         std::string ext = to_lower(p.extension().string());
         if (!fmts.count(ext)) return;
+
+        // keyword 过滤：文件名（含后缀）包含任一 keyword 即通过
+        if (!keyword.arg.empty()) {
+            std::string fname = p.filename().string();
+            bool matched = false;
+            for (const auto& kw : keyword.arg) {
+                if (fname.find(kw) != std::string::npos) {
+                    matched = true;
+                    break;
+                }
+            }
+            if (!matched) return;
+        }
 
         std::ifstream ifs(p, std::ios::binary);
         if (!ifs) {
@@ -138,6 +155,7 @@ void command_txtco::operator()() {
         return;
     }
 
+    // 生成输出文件名：txtco_output_YYYYMMDD_HHMMSS.txt
     auto now = std::chrono::system_clock::now();
     std::time_t t = std::chrono::system_clock::to_time_t(now);
     std::tm tm = *std::localtime(&t);
@@ -149,6 +167,7 @@ void command_txtco::operator()() {
     std::ofstream ofs(out_path, std::ios::binary);
     if (!ofs) throw std::runtime_error("Cannot create: " + out_path.string());
 
+    // UTF-8 带 BOM，方便 Windows 记事本识别
     if (output_encoding.arg == "UTF-8")
         ofs.write("\xEF\xBB\xBF", 3);
 
