@@ -1,6 +1,10 @@
 txtco
 A lightweight C++ command-line text collector. It scans one or more directories for text files matching specified extensions, concatenates them into a single output file, or copies the result straight to the clipboard.
 
+how to get a quick start :
+
+It is recommended to add this .exe to PATH. and type "txtco help" for all info.
+
 (this readme written by ai.)
 
 Features
