@@ -23,8 +23,8 @@ static std::string to_lower(std::string s) {
 
 command_txtco::command_txtco()
     : command("txtco", "Collect text files from one or more directories"),
-      dir({"."}, conv::append_existing_dir,
-          "Root directories to scan (multi-value, default: current directory)"),
+      dir({}, conv::append_existing_dir,
+        "Root directories to scan (multi-value, default: current directory)"),
       recursive(false, conv::to_bool,
           "Recurse into subdirectories, true/false (default: false)"),
       exclude_dirs({}, conv::append_string,
@@ -54,12 +54,16 @@ command_txtco::command_txtco()
 }
 
 void command_txtco::operator()() {
+
+    
+
     // ---------- 1. 校验必需参数 ----------
     if (formats.arg.empty())
         throw std::runtime_error("-format is required (at least one)");
 
-    if (dir.arg.empty())
-        throw std::runtime_error("-dir must have at least one value");
+    if (dir.arg.empty()) {
+        dir.arg.push_back(".");
+    }
 
     // ---------- 2. 构建查找表 ----------
     // 相对路径以第一个 -dir 为基准
