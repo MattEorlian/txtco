@@ -1,6 +1,10 @@
 txtco
 A lightweight C++ command-line text collector. It scans one or more directories for text files matching specified extensions, concatenates them into a single output file, or copies the result straight to the clipboard.
 
+how to get a quick start :
+
+It is recommended to add this .exe to PATH. and type "txtco help" for all info.
+
 (this readme written by ai.)
 
 Features
@@ -258,9 +262,3 @@ clipboard.h — the Win32 clipboard code was drafted by AI as a reference; I ada
 converters.h — the converter function signatures were designed by me; the specific implementations were refined with AI suggestions.
 
 This README — I provided the structure and content; AI polished the wording.
-
-Written by AI:
-
-Nothing. Every file in this repository was reviewed, edited, and committed by me.
-
-I believe in transparency about how modern tools are used. AI helped me move faster, but the project is mine
