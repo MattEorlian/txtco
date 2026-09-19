@@ -1,148 +1,161 @@
-txtco
-A lightweight C++ command-line text collector. It scans one or more directories for text files matching specified extensions, concatenates them into a single output file, or copies the result straight to the clipboard.
+# txtco : A Lightweight Text Collector
 
-how to get a quick start :
+(Translated by deepseek ai from README_CN.md)
 
-It is recommended to add this .exe to PATH. and type "txtco help" for all info.
+Still struggling to upload multi-file, multi-directory projects to your AI assistant?? Try txtco — a lightweight command-line text collector!
 
-(this readme written by ai.)
+Just download the `.exe` file and add it to PATH (recommended), and you're ready to use it.
 
-Features
-Scan one or more directories, with automatic deduplication of overlapping files
+txtco supports recursive search, search by extension, search by keyword, excluding a directory, excluding certain files, copying to clipboard, or outputting results to a specified path.
 
-Recursively traverse directories (optional)
+## Quick Start
 
-Filter files by extension (multi-value)
+Recommendation: Put `txtco.exe` in some directory, then add that directory to the system environment variable PATH. This makes it convenient to call txtco from any command-line window.
 
-Filter files by name substring, case-insensitive (multi-value)
+In a command-line window:
 
-Exclude specific directories or files (multi-value)
+- If you have added it to PATH: type `txtco help` to get help information.
+- If you have not added it to PATH: type `[path where you stored txtco.exe]\txtco help` to get help information.
 
-Output to a file or the Windows clipboard
+That's all I wanted to say. The following content was drafted by AI.
 
-UTF-8 output with BOM for Windows Notepad compatibility
+---
 
-Built-in help command for browsing commands and their arguments
+## 1. Specific Commands and Arguments
 
-Extensible command-line framework with a type-erased argument system
+### Command Overview
 
-Building
-Requirements: CMake ≥ 3.10, a C++17 compiler (MinGW-w64 or MSVC), Windows (clipboard support).
-
-bash
-git clone https://github.com/your-username/txtco.git
-cd txtco
-cmake -S . -B build
-cmake --build build
-The executable is generated at app/txtco.exe.
-
-Usage
-bash
+```bash
 txtco <command> [arguments...]
-Commands
-Command	Description
-txtco	Collect text files from one or more directories
-help	Show help for all commands or a specific one
-txtco Arguments
-Flag	Value	Description	Default
--dir	path(s)	Root directories to scan (multi-value)	.
--recursive	true / false	Recurse into subdirectories	false
--exclude_dir	path(s)	Directories to skip, relative to the first -dir (multi-value)	—
--exclude_file	path(s)	Files to skip, relative to the first -dir (multi-value)	—
--format	extension(s)	File extensions to collect (required, multi-value)	—
--keyword	substring(s)	Only collect files whose name (with extension) contains any of these substrings, case-insensitive (multi-value)	—
--o	path	Output directory	.
--o_code	UTF-8 / GBK / UTF-16	Output encoding	UTF-8
--clipboard	true / false	Copy result to clipboard instead of writing a file	false
-Note: Relative paths passed to -exclude_dir and -exclude_file are resolved against the first -dir. Absolute paths are used as-is. Files matched by more than one -dir entry are collected only once.
+```
 
-help Arguments
-Flag	Value	Description	Default
--which	command name or all	Command to show help for; all shows everything	all
-Examples
-bash
-# Show every command and its arguments
+| Command | Description |
+| :--- | :--- |
+| `txtco` | Collect text files from one or more directories |
+| `help` | Show help for all commands or a specific one |
+
+### Arguments for the `txtco` Command
+
+| Flag | Value | Description | Default |
+| :--- | :--- | :--- | :--- |
+| `-dir` | path(s) | Root directories to scan (multi-value) | `.` (current directory) |
+| `-recursive` | `true` / `false` | Recurse into subdirectories | `false` |
+| `-exclude_dir` | path(s) | Directories to skip, relative to the first `-dir` (multi-value) | — |
+| `-exclude_file` | path(s) | Files to skip, relative to the first `-dir` (multi-value) | — |
+| `-format` | extension(s) | File extensions to collect (**required**, multi-value) | — |
+| `-keyword` | substring(s) | Only collect files whose name (with extension) contains any of these substrings, **case-insensitive** (multi-value) | — |
+| `-o` | path | Output directory | `.` (current directory) |
+| `-o_code` | `UTF-8` / `GBK` / `UTF-16` | Output encoding | `UTF-8` |
+| `-clipboard` | `true` / `false` | Copy result to clipboard instead of writing to a file | `false` |
+
+**Multi-value arguments**: `-dir`, `-exclude_dir`, `-exclude_file`, `-format`, and `-keyword` accept multiple values separated by spaces. For example: `-format .cpp .h .hpp`.
+
+### Arguments for the `help` Command
+
+| Flag | Value | Description | Default |
+| :--- | :--- | :--- | :--- |
+| `-which` | command name or `all` | Command to show help for; `all` shows everything | `all` |
+
+### Output Format
+
+Each collected file is written as:
+
+```
+[absolute/file/path]
+<file content>
+
+[absolute/file/path]
+<file content>
+```
+
+### Usage Examples
+
+```bash
+# Show all commands and their arguments
 txtco help
 
 # Show help for the txtco command only
 txtco help -which txtco
 
-# Collect all .cpp and .h files from the parent directory into the clipboard
-txtco txtco -dir .. -format .cpp .h -clipboard true
+# Collect all .cpp and .h files from the current directory into the clipboard
+txtco txtco -format .cpp .h -clipboard true
 
-# Recursively collect .txt files from D:\docs, excluding archive and build
-txtco txtco -dir D:\docs -recursive true -format .txt -exclude_dir archive build
-
-# Write the result to D:\out with UTF-8 encoding
-txtco txtco -dir . -format .md -o D:\out -o_code UTF-8
+# Recursively collect .cpp/.h from D:\project, excluding build and .git
+txtco txtco -dir D:\project -recursive true -format .cpp .h -exclude_dir build .git -clipboard true
 
 # Collect from multiple directories at once, with automatic deduplication
 txtco txtco -dir src lib ../shared -format .cpp .h -clipboard true
 
 # Only collect files whose name contains "test" or "spec" (case-insensitive)
 txtco txtco -dir . -format .cpp -keyword test spec
-Output Format
-Each collected file is written as:
 
-text
-[absolute/file/path]
-<file content>
-with a blank line separating files.
+# Output to D:\out
+txtco txtco -dir . -format .md -o D:\out -o_code UTF-8
+```
 
-Command-Line Architecture
-The command-line module is built on three layers:
+---
 
-text
+## 2. Internal Implementation and Extension Examples
+
+txtco is not just a text collector — it also includes an **extensible command-line framework**. The `txtco` command itself is just a plugin on top of this framework.
+
+### Architecture Overview
+
+```
 ┌──────────────────────────────────────────────────────────┐
 │  main.cpp                                                │
-│  ─ Parses argv[1] as the command name                    │
-│  ─ Looks up the command in cmd_dict                      │
-│  ─ Calls injectArgs() then operator()                    │
+│  ─ Parse argv[1] as the command name                     │
+│  ─ Look up command in cmd_dict                           │
+│  ─ Call injectArgs() then operator()                     │
 └──────────────────────────────────────────────────────────┘
                             │
                             ▼
 ┌──────────────────────────────────────────────────────────┐
-│  command  (base class)                                   │
+│  command (base class)                                    │
 │  ─ key / doc: command metadata                           │
-│  ─ dict: arg_dict (maps flag strings → argument_base*)   │
-│  ─ injectArgs(): parses argv and dispatches to arguments │
+│  ─ dict: arg_dict (flag → argument_base*)                │
+│  ─ injectArgs(): parse argv and dispatch to arguments    │
 │  ─ operator(): pure virtual, implemented by each command │
 └──────────────────────────────────────────────────────────┘
                             │
                             ▼
 ┌──────────────────────────────────────────────────────────┐
-│  argument<T>  (derived from argument_base)               │
+│  argument<T> (template, inherits from argument_base)     │
 │  ─ arg / defaultArg: strongly-typed storage              │
 │  ─ converter: std::function<int(T&, int, char*[])>       │
-│  ─ convert(): calls the converter with remaining args    │
+│  ─ convert(): calls the converter with remaining argv    │
 └──────────────────────────────────────────────────────────┘
-Key Types
-Type	Role
-argument_base	Type-erased interface for all argument types; also holds the doc string
-argument<T>	Templated argument holding a value of type T
-arg_dict	ref_dict<std::string, argument_base> — maps flag → argument
-cmd_dict	ref_dict<std::string, command> — maps command name → command
-my::ref_dict<K, V>	A small dictionary that stores non-owning pointers to V
-Argument Converter Protocol
-Each argument<T> is bound to a converter function with the signature:
+```
 
-cpp
+### Key Types
+
+| Type | Role |
+| :--- | :--- |
+| `argument_base` | Type-erased interface; holds the `doc` string |
+| `argument<T>` | Templated argument holding a value of type `T` |
+| `arg_dict` | `ref_dict<std::string, argument_base>` — maps flag to argument |
+| `cmd_dict` | `ref_dict<std::string, command>` — maps command name to command |
+| `my::ref_dict<K, V>` | Small non-owning dictionary storing pointers to `V` |
+
+### Argument Converter Protocol
+
+Each `argument<T>` is bound to a converter function:
+
+```cpp
 int converter(T& dst, int argc, char* argv[]);
-dst — the value to write into
+```
 
-argc — number of remaining tokens after this flag
+- `dst` — the value to write into
+- `argc` — number of remaining tokens after this flag
+- `argv` — pointer to the first token after this flag
 
-argv — pointer to the first token after this flag
+The converter **consumes** some number of tokens and returns that count. `injectArgs()` uses the return value to advance its cursor. If a converter throws, `injectArgs()` resets every argument to its default value, then re-throws.
 
-The converter consumes some number of tokens and returns that count. injectArgs() uses the return value to advance its cursor.
+### Extension: Adding a New Command
 
-If a converter throws, injectArgs() calls dict.restore_default() to reset every argument to its default value, then re-throws.
+1. Create a subclass of `command`:
 
-Extending
-Adding a New Command
-Create a subclass of command:
-
-cpp
+```cpp
 // command_mycmd.h
 #pragma once
 #include "command.h"
@@ -155,9 +168,11 @@ public:
     command_mycmd();
     void operator()() override;
 };
-Register arguments and implement the action:
+```
 
-cpp
+2. Register arguments and implement the action:
+
+```cpp
 // command_mycmd.cpp
 #include "command_mycmd.h"
 
@@ -172,9 +187,11 @@ void command_mycmd::operator()() {
     for (int i = 0; i < count.arg; ++i)
         std::cout << "Hello\n";
 }
-Register it in main.cpp:
+```
 
-cpp
+3. Register it in `main.cpp`:
+
+```cpp
 cmd_dict dict;
 command_txtco txtco;
 command_help help(dict);
@@ -182,83 +199,71 @@ command_mycmd mycmd;
 dict.add(txtco);
 dict.add(help);
 dict.add(mycmd);
-Adding a New Argument Type
-Add a converter to converters.h:
+```
 
-cpp
+### Extension: Adding a New Argument Type
+
+1. Add a converter to `converters.h`:
+
+```cpp
 inline int to_int(int& dst, int argc, char* argv[]) {
     if (argc < 1) throw std::invalid_argument("expected an integer");
     dst = std::stoi(argv[0]);
     return 1;
 }
-Declare the argument as a member of your command:
+```
 
-cpp
+2. Declare the member in the command class:
+
+```cpp
 argument<int> count;
-Bind it in the constructor, passing a doc string:
+```
 
-cpp
+3. Bind it in the constructor, passing a doc string:
+
+```cpp
 count(1, conv::to_int, "Number of times to run (default: 1)")
-Register it:
+```
 
-cpp
+4. Register it:
+
+```cpp
 dict.pair("-n", count);
-Converter Conventions
-Convention	Rationale
-Single-value converters return 1	Consumes one token
-Greedy converters stop at the next --prefixed token	Allows -format .cpp .h .hpp
-Throw std::invalid_argument on bad input	Framework catches, resets, re-throws
-Converters must not modify argv	Callers rely on it
-Design Notes
-Type erasure: argument_base allows differently-typed arguments to be stored in a single arg_dict. No templates leak into command.
+```
 
-Self-documenting arguments: doc lives on argument_base, so the help command can walk any arg_dict and print each argument's description without maintaining a separate help text.
+### Design Notes
 
-Non-owning dictionary: ref_dict stores raw pointers. The commands own their arguments; the dict merely references them. This avoids heap allocation entirely.
+- **Type erasure**: `argument_base` allows differently-typed arguments to be stored in a single `arg_dict`; templates do not leak into `command`.
+- **Self-documenting arguments**: `doc` is lifted to `argument_base`, enabling the `help` command to iterate over `arg_dict` and print descriptions uniformly.
+- **Non-owning dictionary**: `ref_dict` stores raw pointers; commands own their arguments, the dictionary only references them, avoiding heap allocation.
+- **Fail-fast parsing**: If any argument converter throws, the entire parse is aborted and defaults are restored.
+- **Greedy consumption**: Multi-value converters stop at the next `-`-prefixed token, supporting `-format .cpp .h .hpp`.
 
-Fail-fast parsing: If any argument converter throws, the entire parse is aborted and defaults are restored. This keeps the command object in a consistent state.
+---
 
-Case-insensitive keyword matching: -keyword converts both the file name and the substrings to lowercase before matching, so -keyword Config and -keyword config behave identically.
+## 3. AI Collaboration Statement
 
-UTF-8 everywhere internally: Source file bytes are read as-is and written with a BOM for UTF-8 output. Future support for GBK/UTF-16 conversion is planned.
+This project was designed and implemented by me. AI served as a coding assistant, not the primary author.
 
-Known Limitations
-Only supports Windows clipboard (clipboard.h returns false on other platforms).
+**Written by me (the author):**
 
--o_code currently only affects the BOM; actual transcoding to GBK/UTF-16 is not yet implemented.
+- All architectural decisions: the `argument_base` / `argument<T>` type-erasure design, the `ref_dict` container, the `command` / `cmd_dict` framework, and the `help` command with its `-which` argument.
+- All header files and the core framework logic under `command/`.
+- `main.cpp`, `CMakeLists.txt`, and the overall project structure.
+- All debugging, integration, and iteration until the tool worked end-to-end.
+- The README's parameter list, usage examples, and architecture description.
 
-Input file encoding is not detected — files are read byte-for-byte.
+**Drafted with AI assistance:**
 
-build/ and .git/ are not excluded by default; users must pass -exclude_dir explicitly.
+- `command_txtco.cpp` — the first working version was drafted by AI based on my specification; I then reviewed, modified, and integrated it (path-resolution base, multi-`-dir` deduplication, `-keyword` case handling, etc. were my changes).
+- `clipboard.h` — the Win32 clipboard code was drafted by AI as a reference; I adapted and verified it.
+- `converters.h` — the converter function signatures were designed by me; implementations were refined with AI suggestions.
+- This README — structure and content were provided by me; AI polished the wording.
 
-Misspelled flags do not yet produce "did you mean…?" suggestions.
+I believe transparency about the use of modern tools is important. AI helped me move faster, but the project is mine.
 
-Keyword substrings cannot begin with - (they would be parsed as the next flag by the greedy converter).
+---
 
-License
-MIT License. See LICENSE for details.
+## License
 
-AI Assistance
-This project is the result of my own design and implementation. AI was used as a coding assistant, not as the primary author. The breakdown is as follows:
-
-Written by me (the author):
-
-All architectural decisions: the argument_base / argument<T> type-erasure design, the ref_dict container, the command / cmd_dict framework, and the help command with its -which argument.
-
-All header files and the core framework logic in command/.
-
-main.cpp, CMakeLists.txt, and the overall project structure.
-
-Debugging, integration, and iteration on the tool until it worked end-to-end.
-
-The README's parameter list, usage examples, and architecture description.
-
-Drafted with AI assistance:
-
-command_txtco.cpp — the first working version was drafted by AI based on my specification; I then reviewed, modified, and integrated it.
-
-clipboard.h — the Win32 clipboard code was drafted by AI as a reference; I adapted and verified it.
-
-converters.h — the converter function signatures were designed by me; the specific implementations were refined with AI suggestions.
-
-This README — I provided the structure and content; AI polished the wording.
+MIT License, see `LICENSE` for details.
