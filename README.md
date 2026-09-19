@@ -15,7 +15,7 @@ Recommendation: Put `txtco.exe` in some directory, then add that directory to th
 In a command-line window:
 
 - If you have added it to PATH: type `txtco help` to get help information.
-- If you have not added it to PATH: type `[path where you stored txtco.exe]\txtco help` to get help information.
+- If you have not added it to PATH: type `[path where you stored txtco.exe]/txtco help` to get help information.
 
 That's all I wanted to say. The following content was drafted by AI.
 
