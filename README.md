@@ -1,6 +1,6 @@
 # txtco : A Lightweight Text Collector
 
-(Translated by deepseek ai from README_CN.md. Check out for README_CN.md if you want a Chinese readme.)
+(Translated by deepseek ai from README_CN.md. Check out README_CN.md if you want a Chinese readme.)
 
 Still struggling to upload multi-file, multi-directory projects to your AI assistant?? Try txtco — a lightweight command-line text collector!
 
